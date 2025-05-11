@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "electron": "electron .",
-    "electron-dev": "concurrently \"npm run dev\" \"electron .\""
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .\""
   },
   "keywords": [],
   "author": "",
@@ -34,6 +34,8 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "wait-on": "^8.0.3"
   }
 }
