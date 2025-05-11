@@ -1,0 +1,41 @@
+<!-- public/basic.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Basic Electron App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Basic Electron App</h1>
+  <p>This is a basic Electron app without Next.js</p>
+  <button id="testButton">Click me!</button>
+  
+  <script>
+    document.getElementById('testButton').addEventListener('click', function() {
+      alert('Button clicked!');
+    });
+  </script>
+</body>
+</html>
