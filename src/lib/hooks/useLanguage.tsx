@@ -1,5 +1,6 @@
 // lib/hooks/useLanguage.tsx
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 type LanguageContextType = {
   language: 'en' | 'zh';

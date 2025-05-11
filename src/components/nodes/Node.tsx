@@ -1,7 +1,8 @@
-import { useState, useRef, KeyboardEvent } from 'react';
-import { supabase } from '@/lib/supabase/client';
-import { useLanguage } from '@/lib/hooks/useLanguage';
-import { NodeType } from '../../types';
+import { useState, useRef } from 'react';
+import type { KeyboardEvent } from 'react';
+import { supabase } from '../../lib/supabase/client';
+import { useLanguage } from '../../lib/hooks/useLanguage';
+import type { NodeType } from '../../types';
 
 type NodeProps = {
   node: NodeType;
@@ -35,7 +36,7 @@ export default function Node({ node }: NodeProps) {
       setLoading(true);
       const { data, error } = await supabase
         .from('nodes')
-        .select('*, links(count)')
+        .select('*, links!links_from_node_id_fkey(count)')
         .eq('parent_id', node.id)
         .order('position');
 

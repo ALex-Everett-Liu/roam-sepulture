@@ -1,22 +1,26 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '../../lib/supabase/client';
 import Node from './Node';
-import { NodeType } from '../../types';
+import type { NodeType } from '../../types';
 
-export default function NodeTree() {
+type NodeTreeProps = {
+  refreshTrigger?: number;
+};
+
+export default function NodeTree({ refreshTrigger = 0 }: NodeTreeProps) {
   const [nodes, setNodes] = useState<NodeType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchRootNodes();
-  }, []);
+  }, [refreshTrigger]);
 
   async function fetchRootNodes() {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('nodes')
-        .select('*, links(count)')
+        .select('*, links!links_from_node_id_fkey(count)')
         .is('parent_id', null)
         .order('position');
 
@@ -38,7 +42,7 @@ export default function NodeTree() {
         .is('parent_id', null);
       
       // Insert new node
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('nodes')
         .insert({
           content: 'New node',
@@ -71,7 +75,7 @@ export default function NodeTree() {
           ))}
           <button 
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            onClick={() => addRootNode()}
+            onClick={addRootNode}
           >
             Add Root Node
           </button>

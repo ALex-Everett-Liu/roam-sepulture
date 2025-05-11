@@ -1,42 +1,39 @@
-"use strict";
+// electron/main.js
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
-// Print environment info for debugging
-console.log('Process env NODE_ENV:', process.env.NODE_ENV);
-console.log('Current working directory:', process.cwd());
-
-let mainWindow;
-
 function createWindow() {
-    mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-        }
-    });
+  const mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
 
-    // Load the HTML file directly
-    const htmlPath = path.join(__dirname, '../public/basic.html');
-    console.log('Loading HTML file:', htmlPath);
-    mainWindow.loadFile(htmlPath);
+  // In development, load from Vite dev server
+  const isDev = process.env.NODE_ENV === 'development';
+  const url = isDev 
+    ? 'http://localhost:5173' // Default Vite dev server port
+    : `file://${path.join(__dirname, '../dist/index.html')}`;
+  
+  mainWindow.loadURL(url);
 
-    // Enable DevTools for debugging
+  // Open DevTools in development
+  if (isDev) {
     mainWindow.webContents.openDevTools();
-
-    mainWindow.on('closed', () => {
-        mainWindow = null;
-    });
+  }
 }
 
-app.on('ready', createWindow);
+app.whenReady().then(() => {
+  createWindow();
 
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+  app.on('activate', function () {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
 });
 
-app.on('activate', () => {
-    if (mainWindow === null) createWindow();
+app.on('window-all-closed', function () {
+  if (process.platform !== 'darwin') app.quit();
 });

@@ -1,4 +1,4 @@
-import { useLanguage } from '@/lib/hooks/useLanguage';
+import { useLanguage } from "../../lib/hooks/useLanguage";
 
 export default function LanguageToggle() {
   const { language, toggleLanguage } = useLanguage();
