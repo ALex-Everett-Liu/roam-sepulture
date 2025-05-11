@@ -7,31 +7,50 @@ import { LanguageProvider } from '@/lib/hooks/useLanguage';
 
 export default function Home() {
   const [initialized, setInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkAndInitializeDatabase() {
-      // Check if there are any nodes
-      const { count } = await supabase
-        .from('nodes')
-        .select('*', { count: 'exact', head: true });
-      
-      // If no nodes exist, create a default root node
-      if (count === 0) {
-        await supabase
+      try {
+        // Check if there are any nodes
+        const { count, error: countError } = await supabase
           .from('nodes')
-          .insert({
-            content: 'Welcome to roam-sepulture',
-            content_zh: '欢迎使用 roam-sepulture',
-            position: 0,
-            is_expanded: true
-          });
+          .select('*', { count: 'exact', head: true });
+        
+        if (countError) throw countError;
+        
+        // If no nodes exist, create a default root node
+        if (count === 0) {
+          const { error: insertError } = await supabase
+            .from('nodes')
+            .insert({
+              content: 'Welcome to roam-sepulture',
+              content_zh: '欢迎使用 roam-sepulture',
+              position: 0,
+              is_expanded: true
+            });
+          
+          if (insertError) throw insertError;
+        }
+        
+        setInitialized(true);
+      } catch (err: unknown) {
+        console.error('Initialization error:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
       }
-      
-      setInitialized(true);
     }
     
     checkAndInitializeDatabase();
   }, []);
+
+  if (error) {
+    return <div className="flex justify-center items-center h-screen">
+      <div className="p-6 bg-red-100 text-red-700 rounded-lg">
+        <h2 className="text-xl font-bold">Error initializing application</h2>
+        <p>{error}</p>
+      </div>
+    </div>;
+  }
 
   if (!initialized) {
     return <div className="flex justify-center items-center h-screen">
