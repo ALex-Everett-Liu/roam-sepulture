@@ -7,7 +7,5 @@ module.exports = {
         config.target = 'electron-renderer';
       }
       return config;
-    },
-    // For production builds
-    output: 'export'
+    }
   };

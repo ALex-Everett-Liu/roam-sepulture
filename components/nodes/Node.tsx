@@ -1,7 +1,7 @@
 import { useState, useRef, KeyboardEvent } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/hooks/useLanguage';
-import { NodeType } from '@/types';
+import { NodeType } from '../../types';
 
 type NodeProps = {
   node: NodeType;

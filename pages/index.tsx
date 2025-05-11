@@ -1,6 +1,6 @@
 // pages/index.tsx
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import NodeTree from '@/components/nodes/NodeTree';
 import LanguageToggle from '@/components/ui/LanguageToggle';
 import { LanguageProvider } from '@/lib/hooks/useLanguage';

@@ -1,6 +1,6 @@
 // electron/main.ts
 import { app, BrowserWindow } from 'electron';
-import path from 'path';
+import * as path from 'path';
 
 let mainWindow: BrowserWindow | null;
 

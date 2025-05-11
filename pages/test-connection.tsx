@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
 export default function TestConnection() {
-  const [nodes, setNodes] = useState([]);
+  const [nodes, setNodes] = useState<any[]>([]);
   const [error, setError] = useState(null);
   
   useEffect(() => {
@@ -13,7 +13,7 @@ export default function TestConnection() {
         
         if (error) throw error;
         setNodes(data || []);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching nodes:', err);
         setError(err.message);
       }

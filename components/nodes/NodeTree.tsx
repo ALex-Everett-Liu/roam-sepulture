@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import Node from './Node';
-import { NodeType } from '@/types';
+import { NodeType } from '../../types';
 
 export default function NodeTree() {
   const [nodes, setNodes] = useState<NodeType[]>([]);
@@ -26,6 +26,35 @@ export default function NodeTree() {
       console.error('Error fetching nodes:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function addRootNode() {
+    try {
+      // Get count of existing root nodes for position
+      const { count } = await supabase
+        .from('nodes')
+        .select('*', { count: 'exact', head: true })
+        .is('parent_id', null);
+      
+      // Insert new node
+      const { data, error } = await supabase
+        .from('nodes')
+        .insert({
+          content: 'New node',
+          content_zh: '新节点',
+          parent_id: null,
+          position: count || 0,
+          is_expanded: true
+        })
+        .select();
+      
+      if (error) throw error;
+      
+      // Refresh the list
+      fetchRootNodes();
+    } catch (error) {
+      console.error('Error adding root node:', error);
     }
   }
 
