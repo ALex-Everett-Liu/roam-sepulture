@@ -121,11 +121,242 @@ export default function Node({ node }: NodeProps) {
   }
 
   async function indentNode() {
-    // Implement indentation logic similar to server.js:95-140
+    try {
+      // Can't indent a node with no parent and position 0
+      if (!node.parent_id && node.position === 0) {
+        console.error('Cannot indent the first root node');
+        return;
+      }
+
+      // Find the node directly above the current node
+      let { data: nodeAbove, error: nodeAboveError } = node.parent_id
+        ? await supabase
+            .from('nodes')
+            .select('*')
+            .eq('parent_id', node.parent_id)
+            .lt('position', node.position)
+            .order('position', { ascending: false })
+            .limit(1)
+            .single()
+        : await supabase
+            .from('nodes')
+            .select('*')
+            .is('parent_id', null)
+            .lt('position', node.position)
+            .order('position', { ascending: false })
+            .limit(1)
+            .single();
+
+      if (nodeAboveError || !nodeAbove) {
+        console.error('No node above to make parent');
+        return;
+      }
+
+      // Get the position this node will have in the new parent
+      const { data: existingChildren } = await supabase
+        .from('nodes')
+        .select('id')
+        .eq('parent_id', nodeAbove.id);
+      
+      const newPosition = existingChildren?.length || 0;
+
+      // Begin database operations - ideally would use transactions
+      
+      // 1. Update positions of nodes in the old parent
+      if (node.parent_id) {
+        await supabase
+          .from('nodes')
+          .update({ position: node.position })
+          .eq('parent_id', node.parent_id)
+          .gt('position', node.position)
+          .select('id, position')
+          .then(({data}) => {
+            if (data && data.length > 0) {
+              const updates = data.map((n) => ({
+                id: n.id,
+                position: (n.position as number) - 1
+              }));
+              
+              return supabase.from('nodes').upsert(updates);
+            }
+          });
+      } else {
+        await supabase
+          .from('nodes')
+          .update({ position: node.position })
+          .is('parent_id', null)
+          .gt('position', node.position)
+          .select('id, position')
+          .then(({data}) => {
+            if (data && data.length > 0) {
+              const updates = data.map((n) => ({
+                id: n.id,
+                position: (n.position as number) - 1
+              }));
+              
+              return supabase.from('nodes').upsert(updates);
+            }
+          });
+      }
+
+      // 2. Update the node's parent_id and position
+      await supabase
+        .from('nodes')
+        .update({
+          parent_id: nodeAbove.id,
+          position: newPosition,
+        })
+        .eq('id', node.id);
+
+      // 3. Make sure the new parent is expanded
+      await supabase
+        .from('nodes')
+        .update({ is_expanded: true })
+        .eq('id', nodeAbove.id);
+
+      // Refresh UI
+      // This is a simplified approach - ideally we would use a more sophisticated
+      // state management approach to update the UI without a full refresh
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error indenting node:', error);
+    }
   }
 
   async function outdentNode() {
-    // Implement outdentation logic similar to server.js:142-220
+    try {
+      // Can't outdent a root node
+      if (!node.parent_id) {
+        console.error('Cannot outdent a root node');
+        return;
+      }
+
+      // Get the parent node
+      const { data: parentNode, error: parentError } = await supabase
+        .from('nodes')
+        .select('*')
+        .eq('id', node.parent_id)
+        .single();
+
+      if (parentError || !parentNode) {
+        console.error('Parent node not found');
+        return;
+      }
+
+      // Determine the new position in the grandparent context
+      let newPosition;
+      
+      if (parentNode.parent_id) {
+        // If the parent has a parent (i.e., not a root node)
+        const { data: siblings, error: siblingsError } = await supabase
+          .from('nodes')
+          .select('position')
+          .eq('parent_id', parentNode.parent_id)
+          .gt('position', parentNode.position)
+          .order('position', { ascending: true })
+          .limit(1);
+
+        if (siblingsError) {
+          console.error('Error getting siblings:', siblingsError);
+          return;
+        }
+
+        newPosition = siblings && siblings.length > 0 
+          ? siblings[0].position // Position right before the next sibling
+          : parentNode.position + 1; // Position right after parent
+      } else {
+        // If the parent is a root node
+        const { data: rootNodes, error: rootNodesError } = await supabase
+          .from('nodes')
+          .select('position')
+          .is('parent_id', null)
+          .gt('position', parentNode.position)
+          .order('position', { ascending: true })
+          .limit(1);
+
+        if (rootNodesError) {
+          console.error('Error getting root nodes:', rootNodesError);
+          return;
+        }
+
+        newPosition = rootNodes && rootNodes.length > 0 
+          ? rootNodes[0].position // Position right before the next root node
+          : parentNode.position + 1; // Position right after parent
+      }
+
+      // Begin database operations
+      
+      // 1. Update positions of siblings in the old parent
+      await supabase
+        .from('nodes')
+        .update({ position: node.position })
+        .eq('parent_id', node.parent_id)
+        .gt('position', node.position)
+        .select('id, position')
+        .then(({data}) => {
+          if (data && data.length > 0) {
+            const updates = data.map((n) => ({
+              id: n.id,
+              position: (n.position as number) - 1
+            }));
+            
+            return supabase.from('nodes').upsert(updates);
+          }
+        });
+
+      // 2. Update positions in the new parent context to make room
+      if (parentNode.parent_id) {
+        await supabase
+          .from('nodes')
+          .update({ position: newPosition })
+          .eq('parent_id', parentNode.parent_id)
+          .gte('position', newPosition)
+          .select('id, position')
+          .then(({data}) => {
+            if (data && data.length > 0) {
+              const updates = data.map((n) => ({
+                id: n.id,
+                position: (n.position as number) + 1
+              }));
+              
+              return supabase.from('nodes').upsert(updates);
+            }
+          });
+      } else {
+        await supabase
+          .from('nodes')
+          .update({ position: newPosition })
+          .is('parent_id', null)
+          .gte('position', newPosition)
+          .select('id, position')
+          .then(({data}) => {
+            if (data && data.length > 0) {
+              const updates = data.map((n) => ({
+                id: n.id,
+                position: (n.position as number) + 1
+              }));
+              
+              return supabase.from('nodes').upsert(updates);
+            }
+          });
+      }
+
+      // 3. Update the node's parent_id and position
+      await supabase
+        .from('nodes')
+        .update({
+          parent_id: parentNode.parent_id,
+          position: newPosition,
+        })
+        .eq('id', node.id);
+
+      // Refresh UI
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error outdenting node:', error);
+    }
   }
 
   const displayContent = language === 'en' 
